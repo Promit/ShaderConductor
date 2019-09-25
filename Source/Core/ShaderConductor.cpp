@@ -45,6 +45,7 @@
 #include <spirv_glsl.hpp>
 #include <spirv_hlsl.hpp>
 #include <spirv_msl.hpp>
+#include <spirv_cross_util.hpp>
 
 #define SC_UNUSED(x) (void)(x);
 
@@ -499,7 +500,7 @@ namespace
         return ret;
     }
 
-    Compiler::ResultDesc ConvertBinary(const Compiler::ResultDesc& binaryResult, const Compiler::SourceDesc& source,
+    Compiler::ResultDesc ConvertBinary(const Compiler::ResultDesc& binaryResult, const Compiler::SourceDesc& source, const Compiler::Options& options,
                                        const Compiler::TargetDesc& target)
     {
         assert((target.language != ShadingLanguage::Dxil) && (target.language != ShadingLanguage::SpirV));
@@ -688,11 +689,20 @@ namespace
         if (combinedImageSamplers)
         {
             compiler->build_combined_image_samplers();
+            if(options.combinedSamplersInheritBindings)
+                spirv_cross_util::inherit_combined_sampler_bindings(*compiler);
 
             for (auto& remap : compiler->get_combined_image_samplers())
             {
-                compiler->set_name(remap.combined_id,
-                                   "SPIRV_Cross_Combined" + compiler->get_name(remap.image_id) + compiler->get_name(remap.sampler_id));
+                uint32_t img_binding = compiler->get_decoration(remap.image_id, spv::DecorationBinding);
+                uint32_t sampler_binding = compiler->get_decoration(remap.sampler_id, spv::DecorationBinding);
+                char strbuf[64];
+                std::string texname = compiler->get_name(remap.image_id);
+                sprintf(strbuf, "%s_t%d_s%d", texname.c_str(), img_binding, sampler_binding);
+				
+                /*compiler->set_name(remap.combined_id,
+                                   "SPIRV_Cross_Combined" + compiler->get_name(remap.image_id) + compiler->get_name(remap.sampler_id));*/
+                compiler->set_name(remap.combined_id, strbuf);
             }
         }
 
@@ -810,7 +820,7 @@ namespace ShaderConductor
                 case ShadingLanguage::Essl:
                 case ShadingLanguage::Msl_macOS:
                 case ShadingLanguage::Msl_iOS:
-                    results[i] = ConvertBinary(binaryResult, sourceOverride, targets[i]);
+                    results[i] = ConvertBinary(binaryResult, sourceOverride, options, targets[i]);
                     break;
 
                 default:

@@ -55,7 +55,7 @@ target_compile_definitions(${LIB_NAME} PRIVATE
     -D_CRT_SECURE_NO_DEPRECATE -D_CRT_SECURE_NO_WARNINGS -D_SCL_SECURE_NO_DEPRECATE -D_SCL_SECURE_NO_WARNINGS)
 target_link_libraries(${LIB_NAME}
     dxcompiler LLVMDxcSupport LLVMSupport
-    spirv-cross-core spirv-cross-glsl spirv-cross-hlsl spirv-cross-msl SPIRV-Tools
+    spirv-cross-core spirv-cross-glsl spirv-cross-hlsl spirv-cross-msl spirv-cross-util SPIRV-Tools
 )
 
 add_dependencies(${LIB_NAME} spirv-cross-core spirv-cross-glsl spirv-cross-hlsl spirv-cross-msl)

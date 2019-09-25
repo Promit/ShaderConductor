@@ -151,6 +151,9 @@ namespace ShaderConductor
             bool enableDebugInfo = false; // Embed debug info into the binary
             bool disableOptimizations = false; // Force to turn off optimizations. Ignore optimizationLevel below.
 
+			// Causes SPIRV-Cross to assign texture register bindings to the resulting combined samplers
+            bool combinedSamplersInheritBindings = false;
+
             int optimizationLevel = 3; // 0 to 3, no optimization to most optimization
             ShaderModel shaderModel = { 6, 0 };
         };
