@@ -153,6 +153,8 @@ namespace ShaderConductor
 
 			// Causes SPIRV-Cross to assign texture register bindings to the resulting combined samplers
             bool combinedSamplersInheritBindings = false;
+			// Removes locations on vertex shader inputs, allowing them to be set from code in GLSL
+            bool stripVertexInputLocations = true;
 
             int optimizationLevel = 3; // 0 to 3, no optimization to most optimization
             ShaderModel shaderModel = { 6, 0 };

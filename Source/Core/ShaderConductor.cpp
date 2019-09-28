@@ -42,10 +42,10 @@
 #include <spirv-tools/libspirv.h>
 #include <spirv.hpp>
 #include <spirv_cross.hpp>
+#include <spirv_cross_util.hpp>
 #include <spirv_glsl.hpp>
 #include <spirv_hlsl.hpp>
 #include <spirv_msl.hpp>
-#include <spirv_cross_util.hpp>
 
 #define SC_UNUSED(x) (void)(x);
 
@@ -201,8 +201,8 @@ namespace
             }
 
             *includeSource = nullptr;
-            return Dxcompiler::Instance().Library()->CreateBlobWithEncodingOnHeapCopy(
-                source->Data(), source->Size(), CP_UTF8, reinterpret_cast<IDxcBlobEncoding**>(includeSource));
+            return Dxcompiler::Instance().Library()->CreateBlobWithEncodingOnHeapCopy(source->Data(), source->Size(), CP_UTF8,
+                                                                                      reinterpret_cast<IDxcBlobEncoding**>(includeSource));
         }
 
         ULONG STDMETHODCALLTYPE AddRef() override
@@ -500,8 +500,8 @@ namespace
         return ret;
     }
 
-    Compiler::ResultDesc ConvertBinary(const Compiler::ResultDesc& binaryResult, const Compiler::SourceDesc& source, const Compiler::Options& options,
-                                       const Compiler::TargetDesc& target)
+    Compiler::ResultDesc ConvertBinary(const Compiler::ResultDesc& binaryResult, const Compiler::SourceDesc& source,
+                                       const Compiler::Options& options, const Compiler::TargetDesc& target)
     {
         assert((target.language != ShadingLanguage::Dxil) && (target.language != ShadingLanguage::SpirV));
         assert((binaryResult.target->Size() & (sizeof(uint32_t) - 1)) == 0);
@@ -524,6 +524,7 @@ namespace
         std::unique_ptr<spirv_cross::CompilerGLSL> compiler;
         bool combinedImageSamplers = false;
         bool buildDummySampler = false;
+        bool stripInputLocations = (options.stripVertexInputLocations) && (source.stage == ShaderStage::VertexShader);
 
         switch (target.language)
         {
@@ -689,7 +690,7 @@ namespace
         if (combinedImageSamplers)
         {
             compiler->build_combined_image_samplers();
-            if(options.combinedSamplersInheritBindings)
+            if (options.combinedSamplersInheritBindings)
                 spirv_cross_util::inherit_combined_sampler_bindings(*compiler);
 
             for (auto& remap : compiler->get_combined_image_samplers())
@@ -699,11 +700,21 @@ namespace
                 char strbuf[64];
                 std::string texname = compiler->get_name(remap.image_id);
                 sprintf(strbuf, "%s_t%d_s%d", texname.c_str(), img_binding, sampler_binding);
-				
+
                 /*compiler->set_name(remap.combined_id,
                                    "SPIRV_Cross_Combined" + compiler->get_name(remap.image_id) + compiler->get_name(remap.sampler_id));*/
                 compiler->set_name(remap.combined_id, strbuf);
             }
+        }
+
+        if (stripInputLocations)
+        {
+            auto res = compiler->get_shader_resources();
+            const auto& inputs = res.stage_inputs;
+            for (const auto& input : inputs)
+            {
+                compiler->unset_decoration(input.id, spv::Decoration::DecorationLocation);
+			}
         }
 
         if (target.language == ShadingLanguage::Hlsl)
